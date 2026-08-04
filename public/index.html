@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard en Vivo</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: sans-serif; background: #f4f6f9; margin: 20px; }
+    .status { padding: 10px; background: #d4edda; border-radius: 5px; margin-bottom: 20px; color: #155724; }
+    .kpis { display: flex; gap: 15px; margin-bottom: 20px; }
+    .card { background: white; padding: 15px; border-radius: 8px; flex: 1; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .chart-container { background: white; padding: 20px; border-radius: 8px; max-width: 600px; }
+  </style>
+</head>
+<body>
+  <h1>📊 Dashboard de Ventas</h1>
+  <div id="status" class="status">Cargando datos...</div>
+
+  <div class="kpis">
+    <div class="card"><h4>Total Registros</h4><h2 id="kpi-total">-</h2></div>
+    <div class="card"><h4>Monto Acumulado</h4><h2 id="kpi-monto">$0</h2></div>
+  </div>
+
+  <div class="chart-container">
+    <canvas id="miGrafico"></canvas>
+  </div>
+
+  <script>
+    async function cargar() {
+      const res = await fetch('/api/datos');
+      const data = await res.json();
+
+      document.getElementById('status').innerText = `Última actualización: ${new Date(data.timestamp).toLocaleTimeString()}`;
+
+      const filas = data.data.slice(1);
+      document.getElementById('kpi-total').innerText = filas.length;
+
+      let suma = 0;
+      const ventasPorCategoria = {};
+
+      filas.forEach(f => {
+        const cat = f[1] || 'Otros';
+        const valor = parseFloat(f[3]) || 0;
+        suma += valor;
+        ventasPorCategoria[cat] = (ventasPorCategoria[cat] || 0) + valor;
+      });
+
+      document.getElementById('kpi-monto').innerText = `$${suma.toLocaleString()}`;
+
+      new Chart(document.getElementById('miGrafico'), {
+        type: 'bar',
+        data: {
+          labels: Object.keys(ventasPorCategoria),
+          datasets: [{ label: 'Ventas por Categoría ($)', data: Object.values(ventasPorCategoria), backgroundColor: '#3498db' }]
+        }
+      });
+    }
+    cargar();
+  </script>
+</body>
+</html>
